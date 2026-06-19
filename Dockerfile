@@ -20,5 +20,5 @@ EXPOSE 8000
 # Crear la carpeta data/ persistente
 RUN mkdir -p /app/data
 
-# Comando para iniciar la aplicación
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando para iniciar la aplicación con puerto dinámico y 1 solo worker para consistencia
+CMD uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
