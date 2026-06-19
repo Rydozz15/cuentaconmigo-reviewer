@@ -1,0 +1,12 @@
+venv/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+data/revisor.db
+data/backups/
+/tmp/
+.ipynb_checkpoints/
+*.xlsx
+*.html
+!DASHBOARD_18-06-2026.html

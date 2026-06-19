@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoreo Cuenta Conmigo</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Boxicons (Icons) -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Chart.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-[#F8FAFC] text-[#1E293B] min-h-screen flex font-sans antialiased overflow-x-hidden">
+
+    <!-- 🔐 PANTALLA DE ACCESO WEB (LOGIN) -->
+    <div id="login-overlay" class="hidden fixed inset-0 bg-[#0F172A] z-50 flex items-center justify-center p-4">
+        <!-- Fondo con gradiente borroso decorativo -->
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.15),transparent_45%)]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(99,102,241,0.15),transparent_45%)]"></div>
+        
+        <form id="loginForm" onsubmit="handleWebLogin(event)" class="relative bg-white border border-[#E2E8F0] rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6 animate-scale-up">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-sm">
+                    <i class='bx bxs-lock-alt'></i>
+                </div>
+                <h2 class="font-outfit font-extrabold text-2xl text-[#0F172A] tracking-tight">Plataforma Cuenta Conmigo</h2>
+                <p class="text-xs text-[#64748B]">Ingresa la contraseña de la plataforma para acceder al panel operativo.</p>
+            </div>
+
+            <!-- Entrada de usuario oculta para activar el gestor de contraseñas de Chrome/Firefox -->
+            <input type="text" name="username" value="admin" autocomplete="username" class="hidden">
+
+            <div class="space-y-2">
+                <label class="text-xs font-bold uppercase tracking-wider text-[#64748B]" for="web-access-password">Contraseña de la Plataforma</label>
+                <input type="password" id="web-access-password" name="password" autocomplete="current-password" required placeholder="••••••••" class="w-full border border-[#CBD5E1] bg-white px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm transition-all">
+            </div>
+
+            <div id="login-error-msg" class="hidden text-xs text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl flex items-center space-x-1.5">
+                <i class='bx bx-error-circle text-sm'></i>
+                <span id="login-error-text">Contraseña incorrecta. Inténtalo de nuevo.</span>
+            </div>
+
+            <button type="submit" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-blue-100/50">
+                Ingresar a la Plataforma
+            </button>
+        </form>
+    </div>
+
+    <!-- 📊 SIDEBAR -->
+    <aside class="w-64 bg-white border-r border-[#E2E8F0] flex flex-col fixed h-full z-20">
+        <div class="p-6 border-b border-[#E2E8F0] flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-tr from-[#3B82F6] to-[#2563EB] rounded-xl flex items-center justify-content-center text-white text-2xl font-bold shadow-md shadow-blue-200">
+                <i class='bx bxs-book-reader m-auto'></i>
+            </div>
+            <div>
+                <h1 class="font-outfit font-bold text-lg leading-tight tracking-tight text-[#0F172A]">Cuenta Conmigo</h1>
+                <span class="text-xs text-[#64748B] font-medium">Panel Operativo</span>
+            </div>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-1">
+            <button onclick="switchTab('upload-tab')" id="btn-upload-tab" class="tab-btn w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-[#3B82F6] bg-[#EFF6FF]">
+                <i class='bx bx-cloud-upload text-xl mr-3'></i> Cargar Excel
+            </button>
+            <button onclick="switchTab('dashboard-tab')" id="btn-dashboard-tab" class="tab-btn w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]">
+                <i class='bx bx-grid-alt text-xl mr-3'></i> Dashboard Real
+            </button>
+            <button onclick="switchTab('calls-tab')" id="btn-calls-tab" class="tab-btn w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]">
+                <i class='bx bx-phone-call text-xl mr-3'></i> Fichas Seguimiento
+            </button>
+            <button onclick="switchTab('search-tab')" id="btn-search-tab" class="tab-btn w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]">
+                <i class='bx bx-list-ul text-xl mr-3'></i> Lista de Familias
+            </button>
+            <button onclick="switchTab('config-tab')" id="btn-config-tab" class="tab-btn w-full flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9]">
+                <i class='bx bx-cog text-xl mr-3'></i> Ajustes Conexión
+            </button>
+        </nav>
+
+        <div class="p-6 border-t border-[#E2E8F0] space-y-3">
+            <div class="bg-[#F1F5F9] rounded-xl p-3.5 text-center">
+                <span class="text-xs text-[#64748B] block font-medium">Sincronización Local</span>
+                <span id="sync-status" class="text-xs font-semibold text-[#EF4444] mt-1 block">Sin datos cargados</span>
+            </div>
+            <!-- ☁️ Indicador de la Nube -->
+            <div class="bg-white border border-[#E2E8F0] rounded-xl p-3 text-center" id="cloud-status-card">
+                <span class="text-[9px] text-[#64748B] uppercase tracking-wider block font-bold">Estado de Nube</span>
+                <div class="flex items-center justify-center space-x-1.5 mt-1">
+                    <span id="cloud-status-dot" class="w-2.5 h-2.5 bg-gray-400 rounded-full"></span>
+                    <span id="cloud-status-text" class="text-xs font-semibold text-[#475569]">Consultando...</span>
+                </div>
+                <span id="cloud-status-time" class="text-[9px] text-[#94A3B8] block mt-1 font-medium"></span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 🌐 MAIN CONTENT AREA -->
+    <main class="flex-1 ml-64 min-h-screen p-8 lg:p-12">
+
+        <!-- 🚀 TAB 1: CARGAR EXCEL -->
+        <section id="upload-tab" class="tab-content max-w-4xl mx-auto space-y-8">
+            <div class="text-center space-y-3">
+                <span class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">Paso 1: Subir Archivo</span>
+                <h2 class="text-3xl lg:text-4xl font-outfit font-extrabold text-[#0F172A]">Bienvenido al Gestor Operativo</h2>
+                <p class="text-[#64748B] max-w-lg mx-auto text-sm leading-relaxed">
+                    Sube el archivo <code class="bg-[#E2E8F0] px-1.5 py-0.5 rounded font-mono text-red-600">Participantes.xlsx</code> descargado de Microsoft Online para iniciar el cruce de datos en tiempo real.
+                </p>
+            </div>
+
+            <!-- Drag & Drop -->
+            <div id="dropzone" class="border-2 border-dashed border-[#CBD5E1] hover:border-[#3B82F6] bg-white rounded-3xl p-12 text-center transition-all duration-300 cursor-pointer shadow-sm relative overflow-hidden group">
+                <input type="file" id="fileInput" class="absolute inset-0 opacity-0 cursor-pointer z-10" accept=".xlsx">
+                <div class="space-y-4">
+                    <div class="w-16 h-16 bg-[#EFF6FF] rounded-2xl flex items-center justify-center text-[#3B82F6] text-3xl mx-auto group-hover:scale-110 transition-all duration-300">
+                        <i class='bx bx-upload m-auto'></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-lg text-[#0F172A]">Haz click o arrastra el archivo aquí</p>
+                        <p class="text-[#64748B] text-xs mt-1">Solo se admiten archivos .xlsx</p>
+                    </div>
+                    <div id="selected-file" class="hidden max-w-xs mx-auto bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-sm text-[#2563EB] font-medium flex items-center justify-center space-x-2">
+                        <i class='bx bx-file text-lg'></i>
+                        <span class="truncate" id="filename-span">Participantes.xlsx</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones de Sincronización -->
+            <div id="sync-actions-card" class="hidden bg-white border border-[#E2E8F0] rounded-3xl p-8 shadow-sm space-y-6 animate-fade-in">
+                <div class="flex items-center justify-between border-b border-[#F1F5F9] pb-4">
+                    <div class="flex items-center space-x-3">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+                        <h3 class="font-bold text-[#0F172A]">Excel cargado exitosamente</h3>
+                    </div>
+                    <span id="records-loaded" class="text-xs font-semibold text-[#64748B] bg-[#F1F5F9] px-2.5 py-1 rounded-full">43 registros</span>
+                </div>
+
+                <!-- 🔐 Entrada temporal para la Contraseña UC (si no está guardada en config.json) -->
+                <div id="sync-password-wrapper" class="hidden space-y-2 border-t border-[#F1F5F9] pt-4">
+                    <label class="text-xs font-bold uppercase tracking-wider text-[#64748B] flex items-center space-x-1" for="sync-uc-password">
+                        <i class='bx bxs-key text-blue-500'></i>
+                        <span>Contraseña Cuenta UC (Requerida para Sincronizar)</span>
+                    </label>
+                    <input type="password" id="sync-uc-password" placeholder="Ingresa la clave de tu correo UC" class="w-full border border-[#CBD5E1] bg-white px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm transition-all">
+                    <p class="text-[10px] text-[#64748B] leading-relaxed">
+                        * Esta contraseña no se guardará en el servidor. Solo se usará en memoria para descargar el reporte de logs en este instante.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Sincronizar logs -->
+                    <button onclick="triggerSync()" id="btn-sync" class="w-full flex items-center justify-center py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-blue-100 hover:shadow-blue-200">
+                        <i class='bx bx-refresh text-xl mr-2 animate-spin-slow' id="sync-spinner"></i>
+                        <span>Sincronizar con Servidor UC</span>
+                    </button>
+                    <!-- Descargar Excel -->
+                    <button onclick="downloadFinalExcel()" id="btn-download" class="w-full flex items-center justify-center py-4 bg-white hover:bg-[#F8FAFC] border border-[#CBD5E1] text-[#0F172A] rounded-2xl font-bold transition-all duration-300 hover:border-[#94A3B8]">
+                        <i class='bx bx-download text-xl mr-2 text-indigo-600'></i>
+                        Descargar Excel Final
+                    </button>
+                </div>
+
+                <!-- Log de Sincronización -->
+                <div id="sync-log-box" class="hidden bg-[#0F172A] rounded-2xl p-4 font-mono text-xs text-emerald-400 max-h-40 overflow-y-auto space-y-1">
+                    <p class="text-[#64748B]">[SYSTEM] Inicializando sincronización...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 🚀 TAB 2: DASHBOARD -->
+        <section id="dashboard-tab" class="tab-content hidden space-y-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-outfit font-extrabold text-[#0F172A] tracking-tight">Dashboard de Monitoreo</h2>
+                    <p class="text-sm text-[#64748B] mt-1 flex items-center">
+                        <i class='bx bx-time-five text-base mr-1.5 text-blue-500'></i> 
+                        <span id="dash-update-time">Actualizado al: Pendiente</span>
+                    </p>
+                </div>
+                <!-- Banner preliminar -->
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 flex items-center space-x-3 text-amber-800">
+                    <i class='bx bx-error text-2xl text-amber-600 animate-pulse'></i>
+                    <div>
+                        <span class="text-xs font-bold block uppercase tracking-wider">Reporte Preliminar</span>
+                        <span class="text-[11px] text-amber-700 leading-tight">Confirmado periódicamente por personal de campo.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Métricas Clave (Cards) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card Total -->
+                <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-600 text-2xl rounded-2xl flex items-center justify-center">
+                        <i class='bx bx-group m-auto'></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-[#64748B] block font-semibold">Participantes Totales</span>
+                        <span id="metric-total" class="text-2xl font-outfit font-bold text-[#0F172A]">0</span>
+                    </div>
+                </div>
+                <!-- Card Completados -->
+                <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-emerald-50 text-emerald-600 text-2xl rounded-2xl flex items-center justify-center">
+                        <i class='bx bx-award m-auto'></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-[#64748B] block font-semibold">Completados</span>
+                        <span id="metric-completed" class="text-2xl font-outfit font-bold text-[#0F172A]">0</span>
+                    </div>
+                </div>
+                <!-- Card Activos -->
+                <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-indigo-50 text-indigo-600 text-2xl rounded-2xl flex items-center justify-center">
+                        <i class='bx bx-mobile-alt m-auto'></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-[#64748B] block font-semibold">Activos en App</span>
+                        <span id="metric-active" class="text-2xl font-outfit font-bold text-[#0F172A]">0</span>
+                    </div>
+                </div>
+                <!-- Card Atrasados -->
+                <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-rose-50 text-rose-600 text-2xl rounded-2xl flex items-center justify-center">
+                        <i class='bx bx-time-five m-auto'></i>
+                    </div>
+                    <div>
+                        <span class="text-xs text-[#64748B] block font-semibold">Atrasados</span>
+                        <span id="metric-late" class="text-2xl font-outfit font-bold text-[#0F172A]">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Funnel -->
+                <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm flex flex-col">
+                    <h3 class="font-outfit font-bold text-lg text-[#0F172A] border-b border-[#F1F5F9] pb-3 mb-4">📊 Embudo Operativo de Participantes</h3>
+                    <div class="flex-1 flex items-center justify-center relative min-h-[300px]">
+                        <canvas id="funnelChart"></canvas>
+                    </div>
+                </div>
+                <!-- Secciones -->
+                <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm flex flex-col">
+                    <h3 class="font-outfit font-bold text-lg text-[#0F172A] border-b border-[#F1F5F9] pb-3 mb-4">📚 Distribución por Sección del Libro</h3>
+                    <div class="flex-1 flex items-center justify-center relative min-h-[300px]">
+                        <canvas id="sectionsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila del Gráfico de Cohortes -->
+            <div class="grid grid-cols-1 gap-8 mt-8">
+                <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between border-b border-[#F1F5F9] pb-3 mb-4">
+                        <h3 class="font-outfit font-bold text-lg text-[#0F172A]">📅 Cohortes: Familias por Semanas desde Inscripción</h3>
+                        <span class="text-xs font-semibold text-blue-500 bg-blue-50 px-2.5 py-1 rounded-full">Haz clic en una barra para ver el desglose</span>
+                    </div>
+                    <div class="flex-1 relative min-h-[300px]">
+                        <canvas id="cohortsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla Colegios -->
+            <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm">
+                <h3 class="font-outfit font-bold text-lg text-[#0F172A] border-b border-[#F1F5F9] pb-3 mb-4">🏫 Análisis de Avance por Colegio</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="text-[#64748B] font-semibold border-b border-[#F1F5F9] bg-[#F8FAFC]">
+                                <th class="p-4">Establecimiento / Colegio</th>
+                                <th class="p-4 text-center">Total</th>
+                                <th class="p-4 text-center">Completados</th>
+                                <th class="p-4 text-center">Pendientes</th>
+                                <th class="p-4 text-right">% Completación</th>
+                            </tr>
+                        </thead>
+                        <tbody id="colegios-tbody">
+                            <tr>
+                                <td colspan="5" class="p-6 text-center text-[#64748B]">No hay datos disponibles. Sube un archivo Excel.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 🚀 TAB 3: FICHAS SEGUIMIENTO (CALL LIST) -->
+        <section id="calls-tab" class="tab-content hidden space-y-8">
+            <div>
+                <h2 class="text-3xl font-outfit font-extrabold text-[#0F172A] tracking-tight">Fichas de Seguimiento Prioritario</h2>
+                <p class="text-[#64748B] text-sm mt-1">Familias prioritarias a llamar agrupadas por necesidades operativas críticas.</p>
+            </div>
+
+            <!-- Alertas de Contactados pendientes de agregar -->
+            <div id="alerts-container" class="space-y-4">
+                <!-- Se inyectarán tarjetas de alerta dinámicamente si hay nuevos -->
+            </div>
+
+            <!-- Tab Buttons internos para categorizar llamados -->
+            <div class="flex border-b border-[#E2E8F0] space-x-6 pb-px">
+                <button onclick="switchCallSubTab('late-calls')" id="btn-late-calls" class="call-subtab-btn font-semibold text-sm pb-4 text-blue-600 border-b-2 border-blue-600">
+                    Atrasados (<span id="cnt-late-calls">0</span>)
+                </button>
+                <button onclick="switchCallSubTab('nodown-calls')" id="btn-nodown-calls" class="call-subtab-btn font-semibold text-sm pb-4 text-[#64748B] hover:text-[#0F172A] border-b-2 border-transparent">
+                    No descargan app (<span id="cnt-nodown-calls">0</span>)
+                </button>
+                <button onclick="switchCallSubTab('verify-calls')" id="btn-verify-calls" class="call-subtab-btn font-semibold text-sm pb-4 text-[#64748B] hover:text-[#0F172A] border-b-2 border-transparent">
+                    Por Confirmar / Completado (<span id="cnt-verify-calls">0</span>)
+                </button>
+            </div>
+
+            <!-- SubTab 1: Atrasados -->
+            <div id="subtab-late-calls" class="call-subtab-content grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tarjetas inyectadas dinámicamente -->
+            </div>
+
+            <!-- SubTab 2: No Descargan -->
+            <div id="subtab-nodown-calls" class="call-subtab-content hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tarjetas inyectadas dinámicamente -->
+            </div>
+
+            <!-- SubTab 3: Por Confirmar -->
+            <div id="subtab-verify-calls" class="call-subtab-content hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tarjetas inyectadas dinámicamente -->
+            </div>
+        </section>
+
+        <!-- 🚀 TAB 4: LISTA COMPLETA DE FAMILIAS -->
+        <section id="search-tab" class="tab-content hidden space-y-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-outfit font-extrabold text-[#0F172A] tracking-tight">Listado Consolidado</h2>
+                    <p class="text-[#64748B] text-sm mt-1">Busca, filtra y revisa la ficha técnica histórica de cualquier familia.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <input type="text" id="searchInput" oninput="filterTable()" placeholder="Buscar por ID, nombre o teléfono..." class="border border-[#CBD5E1] bg-white px-4 py-2.5 rounded-2xl text-sm w-72 focus:outline-none focus:border-blue-500 shadow-sm">
+                    <select id="filterSchool" onchange="filterTable()" class="border border-[#CBD5E1] bg-white px-4 py-2.5 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+                        <option value="">Todos los Colegios</option>
+                    </select>
+                    <select id="filterStatus" onchange="filterTable()" class="border border-[#CBD5E1] bg-white px-4 py-2.5 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+                        <option value="">Todas las Etapas</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div class="bg-white border border-[#E2E8F0] rounded-3xl p-6 shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="text-[#64748B] font-semibold border-b border-[#F1F5F9] bg-[#F8FAFC]">
+                                <th class="p-4">ID</th>
+                                <th class="p-4">Familia / Colegio</th>
+                                <th class="p-4">Teléfono</th>
+                                <th class="p-4 text-center">Progreso</th>
+                                <th class="p-4">Etapa del Embudo</th>
+                                <th class="p-4">Pantalla Actual</th>
+                                <th class="p-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="families-tbody">
+                            <tr>
+                                <td colspan="7" class="p-6 text-center text-[#64748B]">No hay datos cargados. Sube un archivo Excel.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 🚀 TAB 5: AJUSTES -->
+        <section id="config-tab" class="tab-content hidden max-w-2xl mx-auto space-y-8">
+            <div>
+                <h2 class="text-3xl font-outfit font-extrabold text-[#0F172A] tracking-tight">Ajustes del Servidor UC</h2>
+                <p class="text-[#64748B] text-sm mt-1">Configura las credenciales que se utilizarán para la conexión automática con la base de datos de la UC.</p>
+            </div>
+
+            <form id="configForm" onsubmit="saveServerConfig(event)" class="bg-white border border-[#E2E8F0] rounded-3xl p-8 shadow-sm space-y-6">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-[#64748B]" for="email">Correo Electrónico Autorizado</label>
+                    <input type="email" id="email" required placeholder="usuario@uc.cl" class="w-full border border-[#CBD5E1] bg-white px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-[#64748B]" for="password">Código / Contraseña del Servidor</label>
+                    <input type="password" id="password" placeholder="••••••••••••••" class="w-full border border-[#CBD5E1] bg-white px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+                    <p class="text-[11px] text-[#64748B]">Este código fue entregado por el equipo técnico del servidor UC. Déjalo en blanco para mantener el actual.</p>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-wider text-[#64748B]" for="dateFrom">Fecha de Inicio de Reporte</label>
+                    <input type="date" id="dateFrom" required class="w-full border border-[#CBD5E1] bg-white px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+                    <p class="text-[11px] text-[#64748B]">Por defecto: 2026-05-07 (Inicio del estudio actual).</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-[#64748B]" for="sheetName">Pestaña Participantes</label>
+                        <input type="text" id="sheetName" required placeholder="PARTICIPANTES 2" class="w-full border border-[#CBD5E1] bg-white px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-[#64748B]" for="contactadosSheetName">Pestaña Contactados</label>
+                        <input type="text" id="contactadosSheetName" required placeholder="CONTACTADOS" class="w-full border border-[#CBD5E1] bg-white px-4 py-3 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl font-bold transition-all duration-300 shadow-lg shadow-blue-100">
+                    Guardar Ajustes
+                </button>
+            </form>
+
+            <!-- ☁️ Persistencia en la Nube -->
+            <div id="cloud-sync-card" class="bg-white border border-[#E2E8F0] rounded-3xl p-8 shadow-sm space-y-6 mt-6">
+                <div>
+                    <h3 class="font-outfit font-extrabold text-xl text-[#0F172A]">Persistencia en la Nube (Neon)</h3>
+                    <p class="text-[#64748B] text-xs mt-1">Si la plataforma está desplegada en la nube, puedes forzar la descarga de los datos encriptados guardados en Postgres para restaurar la sesión local actual.</p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-3 sm:space-y-0 sm:space-x-4">
+                    <div class="text-center sm:text-left">
+                        <span class="text-xs font-bold text-[#475569] block">Último Respaldo Exitoso</span>
+                        <span id="cloud-sync-card-time" class="text-xs text-[#64748B]">Cargando...</span>
+                    </div>
+                    <button onclick="forceCloudSyncPull()" id="btn-force-pull" class="px-6 py-3.5 bg-white hover:bg-slate-50 border border-[#CBD5E1] text-[#0F172A] rounded-2xl font-bold text-sm transition-all duration-300 flex items-center space-x-2 shadow-sm">
+                        <i class='bx bx-cloud-download text-lg text-indigo-600'></i>
+                        <span>Sincronizar Datos desde la Nube</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 📅 MODAL DESGLOSE COHORTE (SEMANAS) -->
+    <div id="cohort-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl p-6 lg:p-8 space-y-6 animate-scale-up">
+            <div class="flex items-start justify-between border-b border-[#F1F5F9] pb-4">
+                <div>
+                    <span id="cohort-modal-title-badge" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">COHORTE</span>
+                    <h3 id="cohort-modal-title" class="font-outfit font-extrabold text-2xl text-[#0F172A] mt-2">Detalle de Avance de la Cohorte</h3>
+                </div>
+                <button onclick="closeCohortModal()" class="w-10 h-10 hover:bg-[#F1F5F9] border border-[#E2E8F0] rounded-xl flex items-center justify-center text-xl text-[#64748B] transition-all duration-200">
+                    <i class='bx bx-x m-auto'></i>
+                </button>
+            </div>
+            
+            <div class="relative min-h-[280px] flex items-center justify-center">
+                <canvas id="cohortBreakdownChart"></canvas>
+            </div>
+            
+            <div id="cohort-participants-summary" class="text-center text-xs text-[#64748B] pt-2">
+                Total de familias en esta cohorte: <strong id="cohort-total-cnt" class="text-[#0F172A]">-</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔍 MODAL DETALLES DEL PARTICIPANTE -->
+    <div id="details-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl p-6 lg:p-8 space-y-6 animate-scale-up">
+            <div class="flex items-start justify-between border-b border-[#F1F5F9] pb-4">
+                <div>
+                    <span id="modal-id" class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">ID: 00-00</span>
+                    <h3 id="modal-name" class="font-outfit font-extrabold text-2xl text-[#0F172A] mt-2">Nombre del Participante</h3>
+                    <p id="modal-school" class="text-sm text-[#64748B]">Establecimiento Escolar</p>
+                </div>
+                <button onclick="closeModal()" class="w-10 h-10 hover:bg-[#F1F5F9] border border-[#E2E8F0] rounded-xl flex items-center justify-center text-xl text-[#64748B] transition-all duration-200">
+                    <i class='bx bx-x m-auto'></i>
+                </button>
+            </div>
+
+            <!-- Ficha Detallada -->
+            <div class="grid grid-cols-2 gap-4 bg-[#F8FAFC] p-5 rounded-2xl text-sm">
+                <div>
+                    <span class="text-xs text-[#64748B] block">Número de Teléfono</span>
+                    <span id="modal-phone" class="font-bold text-[#0F172A]">-</span>
+                </div>
+                <div>
+                    <span class="text-xs text-[#64748B] block">Etapa Actual</span>
+                    <span id="modal-stage" class="font-bold text-blue-600">-</span>
+                </div>
+                <div>
+                    <span class="text-xs text-[#64748B] block">Última Pantalla</span>
+                    <span id="modal-screen" class="font-bold text-[#0F172A]">-</span>
+                </div>
+                <div>
+                    <span class="text-xs text-[#64748B] block">Progreso en la App</span>
+                    <span id="modal-progress" class="font-bold text-[#0F172A]">-</span>
+                </div>
+                <div>
+                    <span class="text-xs text-[#64748B] block">Primer Log en App</span>
+                    <span id="modal-first-log" class="font-bold text-[#0F172A]">-</span>
+                </div>
+                <div>
+                    <span class="text-xs text-[#64748B] block">Esperada de Finalización</span>
+                    <span id="modal-expected-end" class="font-bold text-[#0F172A]">-</span>
+                </div>
+            </div>
+
+            <!-- Historial de pantallas e inactividad -->
+            <div class="space-y-3">
+                <h4 class="font-bold text-[#0F172A] flex items-center">
+                    <i class='bx bx-history text-lg mr-1.5 text-blue-500'></i> Historial de Uso
+                </h4>
+                <div class="grid grid-cols-2 gap-4 bg-indigo-50/50 p-4 rounded-xl text-xs text-indigo-900 border border-indigo-100/30">
+                    <div>
+                        <span class="text-[10px] text-indigo-600 block uppercase tracking-wider font-semibold">Última Actividad</span>
+                        <span id="modal-last-active" class="font-bold">-</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-indigo-600 block uppercase tracking-wider font-semibold">Días Inactivo</span>
+                        <span id="modal-days-inactive" class="font-bold">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario de comentarios -->
+            <div class="space-y-3">
+                <label class="font-bold text-[#0F172A] flex items-center" for="modal-comment-input">
+                    <i class='bx bx-comment-detail text-lg mr-1.5 text-blue-500'></i> Comentarios de Seguimiento
+                </label>
+                <textarea id="modal-comment-input" rows="3" placeholder="Escribe aquí las observaciones, fecha de llamado y compromisos..." class="w-full border border-[#CBD5E1] bg-white p-3.5 rounded-2xl text-sm focus:outline-none focus:border-blue-500 shadow-sm"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-[#F1F5F9]">
+                <button onclick="closeModal()" class="px-5 py-3 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#475569] rounded-xl font-bold text-sm transition-all duration-200">
+                    Cancelar
+                </button>
+                <button onclick="saveComment()" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-sm transition-all duration-200 shadow-md shadow-blue-100">
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🛠️ MODAL DE ERROR INTERACTIVO CON IA -->
+    <div id="error-ia-modal" class="modal-backdrop hidden fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 lg:p-8 space-y-6 animate-scale-up border border-red-100">
+            <div class="flex items-start justify-between border-b border-[#F1F5F9] pb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 text-xl">
+                        <i class='bx bx-error-alt bx-error'></i>
+                    </div>
+                    <div>
+                        <h3 class="font-outfit font-extrabold text-xl text-[#0F172A]">¡Ups! Algo no salió bien</h3>
+                        <p class="text-xs text-[#64748B] mt-0.5">Ocurrió un error al procesar tu solicitud</p>
+                    </div>
+                </div>
+                <button onclick="closeErrorIaModal()" class="w-10 h-10 hover:bg-[#F1F5F9] border border-[#E2E8F0] rounded-xl flex items-center justify-center text-xl text-[#64748B] transition-all duration-200">
+                    <i class='bx bx-x m-auto'></i>
+                </button>
+            </div>
+
+            <!-- Detalles del error en formato copiable -->
+            <div class="space-y-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-[#64748B] block">Mensaje de Error Técnico</span>
+                <div class="relative bg-red-50/50 border border-red-100 p-4 rounded-2xl flex items-start justify-between group">
+                    <code id="error-ia-msg" class="text-xs text-red-700 font-mono break-all pr-8">-</code>
+                    <button onclick="copyErrorCode()" title="Copiar error técnico" class="absolute right-3 top-3 p-1.5 hover:bg-red-100/50 rounded-lg text-red-500 hover:text-red-700 transition-colors">
+                        <i class='bx bx-copy text-base'></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selector de Nivel Técnico -->
+            <div class="space-y-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-[#64748B] block">¿Cuál es tu nivel de conocimiento técnico?</span>
+                <div class="grid grid-cols-3 gap-3">
+                    <label class="flex flex-col items-center justify-center p-3 border border-[#E2E8F0] rounded-2xl cursor-pointer hover:bg-slate-50 transition-all text-center select-none" id="level-label-easy">
+                        <input type="radio" name="tech-level" value="Principiante 🐣" checked onchange="updateLevelSelectionStyles()" class="sr-only">
+                        <span class="text-xs font-bold text-[#0F172A]">Principiante 🐣</span>
+                        <span class="text-[9px] text-[#64748B] mt-0.5">Didáctico y simple</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-3 border border-[#E2E8F0] rounded-2xl cursor-pointer hover:bg-slate-50 transition-all text-center select-none" id="level-label-medium">
+                        <input type="radio" name="tech-level" value="Intermedio 🚀" onchange="updateLevelSelectionStyles()" class="sr-only">
+                        <span class="text-xs font-bold text-[#0F172A]">Intermedio 🚀</span>
+                        <span class="text-[9px] text-[#64748B] mt-0.5">Con más detalles</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-3 border border-[#E2E8F0] rounded-2xl cursor-pointer hover:bg-slate-50 transition-all text-center select-none" id="level-label-hard">
+                        <input type="radio" name="tech-level" value="Avanzado 💻" onchange="updateLevelSelectionStyles()" class="sr-only">
+                        <span class="text-xs font-bold text-[#0F172A]">Avanzado 💻</span>
+                        <span class="text-[9px] text-[#64748B] mt-0.5">Detalles de código</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Explicación de cómo pegarlo -->
+            <div class="bg-blue-50/40 border border-blue-100/50 p-4 rounded-2xl text-xs text-[#334155] space-y-1.5">
+                <p class="font-semibold text-blue-900 flex items-center">
+                    <i class='bx bx-info-circle text-sm mr-1 text-blue-600'></i> ¿Cómo solucionar esto usando una IA?
+                </p>
+                <p class="text-[#475569] leading-relaxed">
+                    Al hacer clic en el botón de abajo se copiará un <strong>prompt estructurado</strong> con todos los detalles técnicos del error. 
+                    Solo debes pegarlo en Gemini, ChatGPT o Claude para obtener una guía paso a paso adaptada a tu nivel.
+                </p>
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-[#F1F5F9]">
+                <button onclick="closeErrorIaModal()" class="px-5 py-3 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#475569] rounded-xl font-bold text-sm transition-all duration-200">
+                    Cerrar
+                </button>
+                <button onclick="copyAIPrompt()" id="btn-copy-prompt" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-sm transition-all duration-200 shadow-md shadow-blue-100 flex items-center space-x-2">
+                    <i class='bx bx-copy'></i>
+                    <span>Copiar Prompt para IA</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Javascript -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+venv/
+ENV/
+env/
+.env
+
+# Excel lock files
+.~lock.*
+
+# Local test outputs and files
+test_reporte.xlsx
+config.json
+/tmp/
+
+# Data folder and database files
+data/
+*.db
+
+# Excel spreadsheet templates and outputs
+*.xlsx
+
+# Jupyter Notebooks and checkpoints
+*.ipynb
+.ipynb_checkpoints/
+
+# Screen captures / images
+*.png
+
+# Generated HTML reports (only at root)
+/*.html
+
+# OS files
+.DS_Store
+Thumbs.db
+

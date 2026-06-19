@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pandas
+numpy
+openpyxl
+requests
+jinja2
+python-multipart
+cryptography
+psycopg2-binary
+
