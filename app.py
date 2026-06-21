@@ -424,11 +424,10 @@ def save_config(cfg):
 
 async def auto_sync_loop():
     print("[AUTO-SYNC] Bucle de sincronización automática iniciado.")
+    # Espera inicial corta para dar tiempo a que el arranque y la restauración de la base de datos finalicen
+    await asyncio.sleep(10)
     while True:
         try:
-            # Esperar 15 minutos (900 segundos)
-            await asyncio.sleep(900)
-            
             if state.archivo_plantilla_path is not None and state.df_processed is not None:
                 cfg = load_config()
                 email = cfg.get("email")
@@ -468,8 +467,13 @@ async def auto_sync_loop():
                     print(f"[AUTO-SYNC] Sincronización automática completada con éxito. Actualizados {len(df_resultado)} registros.")
                 else:
                     print("[AUTO-SYNC] Sincronización automática omitida: sin contraseña.")
+            
+            # Esperar 15 minutos (900 segundos) para el próximo ciclo
+            await asyncio.sleep(900)
         except Exception as e:
             print(f"[AUTO-SYNC] Error en sincronización automática: {e}")
+            # Esperar 60 segundos antes de reintentar si ocurrió un error (ej. caída de red o servidor de la UC caído)
+            await asyncio.sleep(60)
 
 @app.on_event("startup")
 async def startup_event():
