@@ -97,7 +97,7 @@ def get_postgres_conn():
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         return None
-    return psycopg2.connect(db_url, timeout=5)
+    return psycopg2.connect(db_url, connect_timeout=5)
 
 def init_postgres_db():
     conn = get_postgres_conn()
