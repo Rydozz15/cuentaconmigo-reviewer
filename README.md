@@ -105,6 +105,7 @@ Dado que los servicios de hosting gratuitos tradicionales (como Render o Heroku)
    - `DATABASE_URL`: La URL de conexión copiada de Neon.
    - `SECRET_KEY`: Una clave aleatoria segura de 32 bytes en formato Base64 para el cifrado de datos (puede generarla con `openssl rand -base64 32`).
    - `WEB_ACCESS_PASSWORD`: La contraseña deseada para proteger el acceso web de la aplicación.
+   - `TZ`: Configurar en `America/Santiago` (o la zona horaria local correspondiente). Esto es crítico para asegurar que los registros de fechas y las cohortes no sufran desfases horarios respecto a la hora oficial de Chile.
 4. **Restricción de Ejecución:** Asegúrese de definir el comando de arranque de la aplicación con un único worker de Uvicorn para prevenir inconsistencias de escritura concurrente:
    ```bash
    uvicorn app:app --workers 1 --host 0.0.0.0 --port $PORT
