@@ -336,6 +336,29 @@ async function fetchData() {
             renderFollowUpTabs();
             renderFamiliesTable();
             populateFilters();
+            
+            // Si ya hay datos cargados, mostrar los botones de sincronización y descarga en la pestaña de Cargar Excel
+            const actionsCard = document.getElementById("sync-actions-card");
+            const recordsSpan = document.getElementById("records-loaded");
+            const syncStatus = document.getElementById("sync-status");
+            const filenameSpan = document.getElementById("filename-span");
+            const selectedFileDiv = document.getElementById("selected-file");
+            
+            if (actionsCard && resData.records && resData.records.length > 0) {
+                if (recordsSpan) recordsSpan.innerText = `${resData.records.length} registros encontrados`;
+                if (actionsCard) actionsCard.classList.remove("hidden");
+                if (filenameSpan) filenameSpan.innerText = "Participantes.xlsx (Restaurado desde base de datos)";
+                if (selectedFileDiv) selectedFileDiv.classList.remove("hidden");
+                if (syncStatus) {
+                    if (resData.fecha_sincronizacion) {
+                        syncStatus.innerText = `Última sincronización: ${resData.fecha_sincronizacion}`;
+                        syncStatus.className = "text-xs font-semibold text-emerald-500 mt-1 block";
+                    } else {
+                        syncStatus.innerText = "Excel cargado. Pendiente sincronizar.";
+                        syncStatus.className = "text-xs font-semibold text-amber-500 mt-1 block";
+                    }
+                }
+            }
         }
     } catch (err) {
         console.error("Error al obtener datos:", err);
