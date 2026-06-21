@@ -33,6 +33,11 @@ h1, h2, h3, h4, h5, h6, .font-outfit {
 }
 
 /* Custom Scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #CBD5E1 #F1F5F9;
+}
+
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -78,17 +83,4 @@ canvas {
     max-width: 100% !important;
 }
 
-/* Tab Button Active states */
-.tab-btn.active {
-    background-color: #EFF6FF;
-    color: #2563EB;
-}
 
-.tab-btn.inactive {
-    color: #64748B;
-}
-
-.tab-btn.inactive:hover {
-    color: #0F172A;
-    background-color: #F1F5F9;
-}

@@ -9,4 +9,4 @@ data/backups/
 .ipynb_checkpoints/
 *.xlsx
 *.html
-!DASHBOARD_18-06-2026.html
+config.json

@@ -16,6 +16,21 @@ import hashlib
 import time
 import psycopg2
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import io
+import logging
+from starlette.background import BackgroundTask
+
+logging.basicConfig(level=logging.INFO)
+
+DATETIME_FORMAT = "%d-%m-%Y %H:%M:%S"
+
+def cleanup_temp_file(path: str):
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+            print(f"[EXCEL] Archivo temporal eliminado: {path}")
+    except Exception as e:
+        print(f"[EXCEL] Error al eliminar archivo temporal: {e}")
 
 # Importar módulos locales
 from scraper import descargar_reporte_logs
@@ -85,11 +100,16 @@ def decrypt_data(encrypted_data: bytes, secret_key_b64: str) -> bytes:
     ciphertext = encrypted_data[12:]
     return aesgcm.decrypt(nonce, ciphertext, None)
 
+_secret_key_warned = False
+
 def get_secret_key():
+    global _secret_key_warned
     sk = os.environ.get("SECRET_KEY")
     if sk:
         return sk
-    # Si no hay SECRET_KEY, derivar una clave AES estable de 32 bytes usando SHA-256 sobre una sal estable
+    if not _secret_key_warned:
+        logging.warning("[SECURITY] Variable de entorno SECRET_KEY no configurada. Se usará una clave secreta predeterminada (no segura para producción).")
+        _secret_key_warned = True
     derived_bytes = hashlib.sha256(b"cc2026_default_secret_seed_salt_2026").digest()
     return base64.b64encode(derived_bytes).decode("utf-8")
 
@@ -181,7 +201,7 @@ def db_push_state():
                     """, (psycopg2.Binary(encrypted_config),))
                 conn.commit()
                 print("[CLOUD-DB] Respaldo en la nube exitoso.")
-                state.last_cloud_sync_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                state.last_cloud_sync_time = datetime.now().strftime(DATETIME_FORMAT)
                 state.last_cloud_sync_status = "success"
                 return
         except Exception as e:
@@ -272,7 +292,7 @@ def db_pull_state():
             state.last_cloud_sync_status = "failed"
             return False
             
-        state.last_cloud_sync_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        state.last_cloud_sync_time = datetime.now().strftime(DATETIME_FORMAT)
         state.last_cloud_sync_status = "success"
         return True
     except Exception as e:
@@ -407,8 +427,8 @@ def load_config():
                 loaded = json.load(f)
                 for k, v in loaded.items():
                     cfg[k] = v
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(f"Error al cargar el archivo de configuración config.json: {e}")
             
     # Priorizar variable de entorno sobre config.json y defaults
     env_web_pass = os.environ.get("WEB_ACCESS_PASSWORD")
@@ -432,7 +452,7 @@ async def auto_sync_loop():
                 # Verificar cooldown de 3 horas (10800 segundos) para evitar spam al servidor UC
                 if state.fecha_sincronizacion:
                     try:
-                        last_sync_dt = datetime.strptime(state.fecha_sincronizacion, "%d-%m-%Y %H:%M:%S")
+                        last_sync_dt = datetime.strptime(state.fecha_sincronizacion, DATETIME_FORMAT)
                         if abs((datetime.now() - last_sync_dt).total_seconds()) < 10800:
                             print(f"[AUTO-SYNC] Omitiendo sincronización automática: última actualización exitosa hace menos de 3 horas ({state.fecha_sincronizacion}).")
                             await asyncio.sleep(900)
@@ -458,7 +478,6 @@ async def auto_sync_loop():
                         report_url=cfg.get("report_url")
                     )
                     
-                    import io
                     df_servidor = pd.read_excel(io.BytesIO(logs_content))
                     
                     # Ejecutar procesamiento
@@ -471,7 +490,7 @@ async def auto_sync_loop():
                     # Actualizar estado global
                     state.df_processed = df_resultado
                     state.nuevos_pendientes = nuevos_p
-                    state.fecha_sincronizacion = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                    state.fecha_sincronizacion = datetime.now().strftime(DATETIME_FORMAT)
                     
                     # Guardar en SQLite
                     save_state_to_db()
@@ -527,14 +546,20 @@ def get_sync_status():
     # Ping pasivo a Postgres para mantenerlo tibio (warm-up)
     db_url = os.environ.get("DATABASE_URL")
     if db_url:
+        conn = None
         try:
             conn = get_postgres_conn()
             if conn:
                 with conn.cursor() as cur:
                     cur.execute("SELECT 1;")
-                conn.close()
         except Exception as e:
             print(f"[CLOUD-DB] Ping de warm-up fallido: {e}")
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
             
     return {
         "last_cloud_sync_time": state.last_cloud_sync_time,
@@ -601,9 +626,14 @@ async def upload_file(file: UploadFile = File(...)):
     if not file.filename.endswith(".xlsx"):
         raise HTTPException(status_code=400, detail="Solo se permiten archivos Excel (.xlsx).")
         
+    max_size = 50 * 1024 * 1024
+    contents = await file.read(max_size + 1)
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail="El archivo excede el tamaño máximo permitido de 50MB.")
+        
     temp_path = os.path.join(TEMP_DIR, f"uploaded_{datetime.now().timestamp()}_{file.filename}")
     with open(temp_path, "wb") as f:
-        f.write(await file.read())
+        f.write(contents)
         
     # Obtener configuración de hojas
     cfg = load_config()
@@ -696,7 +726,6 @@ def sync_data(data: SyncSchema = None):
         raise HTTPException(status_code=500, detail=str(e))
         
     # Leer el reporte descargado en memoria
-    import io
     try:
         df_servidor = pd.read_excel(io.BytesIO(logs_content))
     except Exception as e:
@@ -713,7 +742,7 @@ def sync_data(data: SyncSchema = None):
         # Actualizar estado global
         state.df_processed = df_resultado
         state.nuevos_pendientes = nuevos_p
-        state.fecha_sincronizacion = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        state.fecha_sincronizacion = datetime.now().strftime(DATETIME_FORMAT)
         
         # Guardar en base de datos SQLite
         save_state_to_db()
@@ -743,6 +772,7 @@ def get_processed_data():
         # Calcular semanas desde inscripción
         fecha_ins = row.get("Fecha de inscripción en el servidor")
         semanas_ins = None
+        fecha_ins_dt = None
         if pd.notna(fecha_ins) and fecha_ins != "":
             try:
                 fecha_ins_dt = parsear_fecha_inscripcion(fecha_ins)
@@ -898,7 +928,8 @@ def download_excel(token: str = None):
         return FileResponse(
             path=output_path,
             filename=output_filename,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            background=BackgroundTask(cleanup_temp_file, output_path)
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar archivo Excel: {e}")

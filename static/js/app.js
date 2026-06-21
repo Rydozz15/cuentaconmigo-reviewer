@@ -13,6 +13,16 @@ let cohortsChartInstance = null;
 let cohortBreakdownChartInstance = null;
 
 // 🔐 SISTEMA DE AUTENTICACIÓN Y UTILS
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 async function authenticatedFetch(url, options = {}) {
     const token = localStorage.getItem("web_access_password") || "";
     
@@ -512,9 +522,10 @@ function renderDashboard() {
     } else {
         // Ordenar colegios por % de completados desc
         globalData.colegios.sort((a,b) => b.pct - a.pct).forEach(c => {
+            const escColegio = escapeHtml(c.colegio);
             colegiosTbody.innerHTML += `
                 <tr class="border-b border-[#F1F5F9]">
-                    <td class="p-4 font-semibold text-[#0F172A]">${c.colegio}</td>
+                    <td class="p-4 font-semibold text-[#0F172A]">${escColegio}</td>
                     <td class="p-4 text-center font-medium">${c.total}</td>
                     <td class="p-4 text-center text-emerald-600 font-bold">${c.completados}</td>
                     <td class="p-4 text-center text-[#64748B]">${c.pendientes}</td>
@@ -537,6 +548,11 @@ function renderFollowUpTabs() {
     
     if (globalData.nuevos_pendientes.length > 0) {
         globalData.nuevos_pendientes.forEach(p => {
+            const escNombreAdulto = escapeHtml(p.nombre_adulto);
+            const escNombreNino = escapeHtml(p.nombre_nino);
+            const escColegio = escapeHtml(p.colegio);
+            const escTelefono = escapeHtml(p.telefono);
+            const escId = escapeHtml(p.id);
             alertsContainer.innerHTML += `
                 <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm animate-fade-in">
                     <div class="flex items-start space-x-4">
@@ -545,8 +561,8 @@ function renderFollowUpTabs() {
                         </div>
                         <div>
                             <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full uppercase tracking-wider">Apto en Contactados</span>
-                            <h4 class="font-bold text-[#0F172A] text-lg mt-1">${p.nombre_adulto} <span class="text-xs text-[#64748B] font-normal">(Niño: ${p.nombre_nino})</span></h4>
-                            <p class="text-xs text-[#64748B] mt-0.5">Colegio: <strong>${p.colegio}</strong> | Teléfono: <strong>${p.telefono}</strong> | ID asignado: <strong>${p.id}</strong></p>
+                            <h4 class="font-bold text-[#0F172A] text-lg mt-1">${escNombreAdulto} <span class="text-xs text-[#64748B] font-normal">(Niño: ${escNombreNino})</span></h4>
+                            <p class="text-xs text-[#64748B] mt-0.5">Colegio: <strong>${escColegio}</strong> | Teléfono: <strong>${escTelefono}</strong> | ID asignado: <strong>${escId}</strong></p>
                         </div>
                     </div>
                     <div class="bg-white border border-emerald-100 rounded-2xl p-3 flex items-center space-x-2 text-xs text-emerald-800 shadow-sm flex-shrink-0">
@@ -590,16 +606,23 @@ function renderCallList(type, list) {
         if (p.StatusClasificado.includes("Próximo")) badgeColor = "bg-amber-50 text-amber-600";
         if (p.StatusClasificado.includes("Completado")) badgeColor = "bg-emerald-50 text-emerald-600";
         
+        const escId = escapeHtml(p.ID);
+        const escStatus = escapeHtml(p.StatusClasificado);
+        const escNombre = escapeHtml(p.Nombre);
+        const escColegio = escapeHtml(p.Colegio);
+        const escPantalla = escapeHtml(p.PantallaActual || 'Ninguna');
+        const escTelefono = escapeHtml(p.Telefono);
+        
         container.innerHTML += `
             <div class="bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4 hover:shadow-md transition-all duration-300">
                 <div class="space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">ID: ${p.ID}</span>
-                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeColor}">${p.StatusClasificado}</span>
+                        <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">ID: ${escId}</span>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeColor}">${escStatus}</span>
                     </div>
-                    <h4 class="font-outfit font-bold text-lg text-[#0F172A] truncate">${p.Nombre}</h4>
+                    <h4 class="font-outfit font-bold text-lg text-[#0F172A] truncate">${escNombre}</h4>
                     <p class="text-xs text-[#64748B] flex items-center">
-                        <i class='bx bx-school mr-1'></i> ${p.Colegio}
+                        <i class='bx bx-school mr-1'></i> ${escColegio}
                     </p>
                     <div class="grid grid-cols-2 gap-2 text-[11px] bg-[#F8FAFC] p-3 rounded-xl border border-[#F1F5F9]">
                         <div>
@@ -608,16 +631,16 @@ function renderCallList(type, list) {
                         </div>
                         <div>
                             <span class="text-[#64748B] block">Última pantalla:</span>
-                            <span class="font-bold text-[#0F172A] truncate block max-w-[120px]">${p.PantallaActual || 'Ninguna'}</span>
+                            <span class="font-bold text-[#0F172A] truncate block max-w-[120px]">${escPantalla}</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="border-t border-[#F1F5F9] pt-4 flex items-center justify-between">
-                    <a href="tel:${p.Telefono}" class="flex items-center text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 px-3.5 py-2 rounded-xl transition-all duration-200">
-                        <i class='bx bx-phone text-sm mr-1.5'></i> Llamar: ${p.Telefono}
+                    <a href="tel:${escTelefono}" class="flex items-center text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100/80 px-3.5 py-2 rounded-xl transition-all duration-200">
+                        <i class='bx bx-phone text-sm mr-1.5'></i> Llamar: ${escTelefono}
                     </a>
-                    <button onclick="openDetailsModal('${p.ID}')" class="flex items-center text-xs font-bold text-[#475569] hover:text-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] px-3.5 py-2 rounded-xl transition-all duration-200">
+                    <button onclick="openDetailsModal('${escId}')" class="flex items-center text-xs font-bold text-[#475569] hover:text-[#0F172A] bg-[#F1F5F9] hover:bg-[#E2E8F0] px-3.5 py-2 rounded-xl transition-all duration-200">
                         <i class='bx bx-edit-alt text-sm mr-1'></i> Bitácora
                     </button>
                 </div>
@@ -641,14 +664,23 @@ function renderFamiliesTable() {
     }
     
     globalData.records.forEach(p => {
+        const escId = escapeHtml(p.ID);
+        const escNombre = escapeHtml(p.Nombre);
+        const escNombreLower = escapeHtml(p.Nombre.toLowerCase());
+        const escTelefono = escapeHtml(p.Telefono);
+        const escColegio = escapeHtml(p.Colegio);
+        const escStatus = escapeHtml(p.StatusClasificado);
+        const escPantalla = escapeHtml(p.PantallaActual || 'Ninguna');
+        const badgeClass = getBadgeClass(p.StatusClasificado);
+        
         tbody.innerHTML += `
-            <tr class="border-b border-[#F1F5F9]" data-id="${p.ID}" data-name="${p.Nombre.toLowerCase()}" data-phone="${p.Telefono}" data-school="${p.Colegio}" data-status="${p.StatusClasificado}">
-                <td class="p-4 font-semibold text-[#64748B]">${p.ID}</td>
+            <tr class="border-b border-[#F1F5F9]" data-id="${escId}" data-name="${escNombreLower}" data-phone="${escTelefono}" data-school="${escColegio}" data-status="${escStatus}">
+                <td class="p-4 font-semibold text-[#64748B]">${escId}</td>
                 <td class="p-4">
-                    <h5 class="font-bold text-[#0F172A]">${p.Nombre}</h5>
-                    <span class="text-xs text-[#64748B] block">${p.Colegio}</span>
+                    <h5 class="font-bold text-[#0F172A]">${escNombre}</h5>
+                    <span class="text-xs text-[#64748B] block">${escColegio}</span>
                 </td>
-                <td class="p-4 font-medium">${p.Telefono}</td>
+                <td class="p-4 font-medium">${escTelefono}</td>
                 <td class="p-4 text-center">
                     <div class="flex items-center justify-center space-x-2">
                         <div class="w-12 bg-[#E2E8F0] rounded-full h-1.5 overflow-hidden">
@@ -658,11 +690,11 @@ function renderFamiliesTable() {
                     </div>
                 </td>
                 <td class="p-4">
-                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${getBadgeClass(p.StatusClasificado)}">${p.StatusClasificado}</span>
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full ${badgeClass}">${escStatus}</span>
                 </td>
-                <td class="p-4 font-mono text-xs text-[#475569]">${p.PantallaActual || 'Ninguna'}</td>
+                <td class="p-4 font-mono text-xs text-[#475569]">${escPantalla}</td>
                 <td class="p-4 text-right">
-                    <button onclick="openDetailsModal('${p.ID}')" class="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all duration-200">
+                    <button onclick="openDetailsModal('${escId}')" class="px-3.5 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all duration-200">
                         Ver Ficha
                     </button>
                 </td>
@@ -695,12 +727,14 @@ function populateFilters() {
     
     filterSchool.innerHTML = '<option value="">Todos los Colegios</option>';
     schools.forEach(s => {
-        filterSchool.innerHTML += `<option value="${s}">${s}</option>`;
+        const escS = escapeHtml(s);
+        filterSchool.innerHTML += `<option value="${escS}">${escS}</option>`;
     });
     
     filterStatus.innerHTML = '<option value="">Todas las Etapas</option>';
     statuses.forEach(s => {
-        filterStatus.innerHTML += `<option value="${s}">${s}</option>`;
+        const escS = escapeHtml(s);
+        filterStatus.innerHTML += `<option value="${escS}">${escS}</option>`;
     });
     
     filterSchool.value = currentSchool;
@@ -967,7 +1001,8 @@ function addTerminalLog(msg) {
     if (!logBox) return;
     
     const time = new Date().toLocaleTimeString();
-    logBox.innerHTML += `<p><span class="text-[#64748B]">[${time}]</span> ${msg}</p>`;
+    const escMsg = escapeHtml(msg);
+    logBox.innerHTML += `<p><span class="text-[#64748B]">[${time}]</span> ${escMsg}</p>`;
     logBox.scrollTop = logBox.scrollHeight;
 }
 
@@ -990,9 +1025,14 @@ function closeErrorIaModal() {
 
 function copyErrorCode() {
     const errorText = document.getElementById("error-ia-msg").innerText;
-    navigator.clipboard.writeText(errorText);
-    
-    alert("Mensaje de error técnico copiado al portapapeles.");
+    navigator.clipboard.writeText(errorText)
+        .then(() => {
+            alert("Mensaje de error técnico copiado al portapapeles.");
+        })
+        .catch(err => {
+            console.error("Error al copiar al portapapeles: ", err);
+            alert("No se pudo copiar automáticamente. Por favor, selecciona el texto y cópialo manualmente.");
+        });
 }
 
 function updateLevelSelectionStyles() {
@@ -1037,19 +1077,24 @@ Por favor, ayúdame con lo siguiente de forma muy didáctica, analítica y amiga
 2. Dame una lista detallada paso a paso de posibles causas y soluciones que yo mismo puedo probar para corregirlo (ej. revisar si el Excel tiene las pestañas y columnas correctas, si mis credenciales en Ajustes son correctas, si el puerto está bloqueado, etc.).
 3. Si consideras que el error es muy complejo, requiere modificar el código Python o JS, o es un fallo del servidor que no puedo resolver editando la configuración o los archivos Excel, indícame explícitamente al final de tu respuesta que debo comunicarme con el ingeniero de desarrollo para solucionarlo.`;
 
-    navigator.clipboard.writeText(promptText);
-    
-    const btn = document.getElementById("btn-copy-prompt");
-    const originalContent = btn.innerHTML;
-    btn.innerHTML = "<i class='bx bx-check'></i> <span>¡Prompt Copiado!</span>";
-    btn.classList.remove("from-blue-600", "to-indigo-600");
-    btn.classList.add("from-emerald-600", "to-teal-600");
-    
-    setTimeout(() => {
-        btn.innerHTML = originalContent;
-        btn.classList.remove("from-emerald-600", "to-teal-600");
-        btn.classList.add("from-blue-600", "to-indigo-600");
-    }, 2000);
+    navigator.clipboard.writeText(promptText)
+        .then(() => {
+            const btn = document.getElementById("btn-copy-prompt");
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = "<i class='bx bx-check'></i> <span>¡Prompt Copiado!</span>";
+            btn.classList.remove("from-blue-600", "to-indigo-600");
+            btn.classList.add("from-emerald-600", "to-teal-600");
+            
+            setTimeout(() => {
+                btn.innerHTML = originalContent;
+                btn.classList.remove("from-emerald-600", "to-teal-600");
+                btn.classList.add("from-blue-600", "to-indigo-600");
+            }, 2000);
+        })
+        .catch(err => {
+            console.error("Error al copiar al portapapeles: ", err);
+            alert("No se pudo copiar el prompt automáticamente. Por favor, copia el texto manualmente.");
+        });
 }
 
 // ☁️ FUNCIONES DE SINCRONIZACIÓN DE PERSISTENCIA EN LA NUBE

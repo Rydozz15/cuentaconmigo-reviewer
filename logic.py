@@ -162,11 +162,10 @@ def valores_diferentes(v1, v2):
         return False
     if v1_isna != v2_isna:
         return True
-    
     try:
         if float(v1) == float(v2):
             return False
-    except:
+    except (ValueError, TypeError):
         pass
         
     try:
@@ -174,7 +173,7 @@ def valores_diferentes(v1, v2):
         b2 = bool(v2) if str(v2).lower() in ['true', '1', '1.0'] else False
         if b1 == b2 and str(v1).lower() in ['true', 'false', '1', '0', '1.0', '0.0'] and str(v2).lower() in ['true', 'false', '1', '0', '1.0', '0.0']:
             return False
-    except:
+    except (ValueError, TypeError):
         pass
         
     s1 = str(v1).strip().lower().replace('.0', '')
@@ -357,7 +356,7 @@ def procesar_datos_completos(df_participantes, df_contactados, df_servidor):
                     df_participantes.at[idx, 'Evaluable a las 4 semanas'] = f"NO, SE PODRÁ EL {date_4w.strftime('%d/%m/%Y')}"
                     
                 if hoy_dt.date() >= date_6w:
-                    df_participantes.at[idx, 'Evaluable a las 6 semanas'] = f"Sí, DESDE EL {date_6w.strftime('%d/%m/%Y')}"
+                    df_participantes.at[idx, 'Evaluable a las 6 semanas'] = f"SÍ, DESDE EL {date_6w.strftime('%d/%m/%Y')}"
                 else:
                     df_participantes.at[idx, 'Evaluable a las 6 semanas'] = f"NO, SE PODRÁ EL {date_6w.strftime('%d/%m/%Y')}"
                     
@@ -422,7 +421,7 @@ def procesar_datos_completos(df_participantes, df_contactados, df_servidor):
                         dias_trans = (hoy_dt - fecha_inscripcion_dt).days
                         if 0 <= dias_trans <= 5:
                             return 'Recién Notificado (< 5 días)'
-                except:
+                except Exception:
                     pass
             return 'Notificado - No Descarga App'
             
