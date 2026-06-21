@@ -198,6 +198,11 @@ def procesar_datos_completos(df_participantes, df_contactados, df_servidor):
     """
     hoy_dt = datetime.now()
     
+    # Asegurar que todas las columnas de df_participantes sean de tipo object para evitar errores de casteo (dtype datetime64)
+    df_participantes = df_participantes.copy()
+    for col in df_participantes.columns:
+        df_participantes[col] = df_participantes[col].astype(object)
+    
     # 1. Detectar Nuevos Pendientes en CONTACTADOS
     nuevos_pendientes = []
     IDX_ID = 0
