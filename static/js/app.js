@@ -93,7 +93,7 @@ async function handleWebLogin(event) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    switchTab('upload-tab');
+    switchTab('dashboard-tab');
     initDragAndDrop();
     
     const token = localStorage.getItem("web_access_password");
