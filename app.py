@@ -391,18 +391,22 @@ def load_config():
         "login_url": "http://146.155.45.25:4001/api/auth/admin",
         "report_url": "http://146.155.45.25:4001/api/report"
     }
+    cfg = defaults.copy()
     if os.path.exists(CONFIG_PATH):
         try:
             with open(CONFIG_PATH, "r") as f:
-                cfg = json.load(f)
-                # Asegurar llaves por defecto
-                for k, v in defaults.items():
-                    if k not in cfg:
-                        cfg[k] = v
-                return cfg
+                loaded = json.load(f)
+                for k, v in loaded.items():
+                    cfg[k] = v
         except Exception:
-            return defaults
-    return defaults
+            pass
+            
+    # Priorizar variable de entorno sobre config.json y defaults
+    env_web_pass = os.environ.get("WEB_ACCESS_PASSWORD")
+    if env_web_pass:
+        cfg["web_access_password"] = env_web_pass
+        
+    return cfg
 
 def save_config(cfg):
     with open(CONFIG_PATH, "w") as f:
