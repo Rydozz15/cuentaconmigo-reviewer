@@ -429,6 +429,17 @@ async def auto_sync_loop():
     while True:
         try:
             if state.archivo_plantilla_path is not None and state.df_processed is not None:
+                # Verificar cooldown de 3 horas (10800 segundos) para evitar spam al servidor UC
+                if state.fecha_sincronizacion:
+                    try:
+                        last_sync_dt = datetime.strptime(state.fecha_sincronizacion, "%d-%m-%Y %H:%M:%S")
+                        if abs((datetime.now() - last_sync_dt).total_seconds()) < 10800:
+                            print(f"[AUTO-SYNC] Omitiendo sincronización automática: última actualización exitosa hace menos de 3 horas ({state.fecha_sincronizacion}).")
+                            await asyncio.sleep(900)
+                            continue
+                    except Exception as parse_err:
+                        print(f"[AUTO-SYNC] Error al evaluar cooldown de sincronización: {parse_err}")
+
                 cfg = load_config()
                 email = cfg.get("email")
                 password = cfg.get("password")
