@@ -233,6 +233,8 @@ def db_pull_state():
                     
         os.makedirs(DATA_DIR, exist_ok=True)
         
+        decryption_success = True
+        
         if db_content:
             try:
                 decrypted_db = decrypt_data(bytes(db_content), key)
@@ -242,6 +244,7 @@ def db_pull_state():
                 print("[CLOUD-DB] revisor.db descargado y desencriptado con éxito.")
             except Exception as decrypt_err:
                 print(f"[CLOUD-DB] Error de desencriptación en revisor.db (¿clave secreta incorrecta?): {decrypt_err}")
+                decryption_success = False
                 
         if template_content:
             try:
@@ -252,6 +255,7 @@ def db_pull_state():
                 print("[CLOUD-DB] template_participantes.xlsx descargado y desencriptado con éxito.")
             except Exception as decrypt_err:
                 print(f"[CLOUD-DB] Error de desencriptación en template_participantes.xlsx: {decrypt_err}")
+                decryption_success = False
 
         if config_content:
             try:
@@ -262,7 +266,12 @@ def db_pull_state():
                 print("[CLOUD-DB] config.json descargado y desencriptado con éxito.")
             except Exception as decrypt_err:
                 print(f"[CLOUD-DB] Error de desencriptación en config.json: {decrypt_err}")
+                decryption_success = False
                 
+        if not decryption_success:
+            state.last_cloud_sync_status = "failed"
+            return False
+            
         state.last_cloud_sync_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
         state.last_cloud_sync_status = "success"
         return True
