@@ -971,6 +971,10 @@ def download_excel(token: str = None):
 # 📄 SERVIR PÁGINAS ESTÁTICAS
 # ==============================================================================
 
+@app.head("/")
+def head_index():
+    return HTMLResponse(content="", status_code=200)
+
 @app.get("/")
 def get_index():
     index_path = os.path.join(TEMPLATES_DIR, "index.html")
