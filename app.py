@@ -24,13 +24,45 @@ logging.basicConfig(level=logging.INFO)
 
 DATETIME_FORMAT = "%d-%m-%Y %H:%M:%S"
 
-def cleanup_temp_file(path: str):
+def safe_float(val, default=0.0):
+    if pd.isna(val) or val is None or str(val).strip() == "" or str(val).strip().lower() == "nan":
+        return default
     try:
-        if os.path.exists(path):
-            os.remove(path)
-            print(f"[EXCEL] Archivo temporal eliminado: {path}")
-    except Exception as e:
-        print(f"[EXCEL] Error al eliminar archivo temporal: {e}")
+        return float(val)
+    except Exception:
+        return default
+
+def safe_int_dias(val):
+    if pd.isna(val) or val is None or str(val).strip() == "" or str(val).strip().lower() == "nan":
+        return None
+    
+    # 1. Intentar conversión directa a int/float
+    try:
+        return int(float(str(val).strip()))
+    except ValueError:
+        pass
+    
+    # 2. Si es un objeto de tipo datetime de pandas/python
+    if isinstance(val, (datetime, pd.Timestamp)):
+        val_naive = val.to_pydatetime().replace(tzinfo=None) if hasattr(val, "to_pydatetime") else val.replace(tzinfo=None)
+        if val_naive.year == 1900:
+            delta = val_naive - datetime(1899, 12, 30)
+            return int(delta.days)
+        return None
+
+    # 3. Si es un string que representa una fecha
+    val_str = str(val).strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d-%m-%Y %H:%M:%S", "%d-%m-%Y"):
+        try:
+            dt = datetime.strptime(val_str, fmt)
+            if dt.year == 1900:
+                delta = dt - datetime(1899, 12, 30)
+                return int(delta.days)
+            return None
+        except ValueError:
+            continue
+            
+    return None
 
 # Importar módulos locales
 from scraper import descargar_reporte_logs
@@ -826,8 +858,8 @@ def get_processed_data():
             "FechaEsperada": str(row.get("Fecha Esperada Finalización"))[:10] if row.get("Fecha Esperada Finalización") else None,
             "FechaFinal": str(row.get("Fecha Finalización Real"))[:10] if row.get("Fecha Finalización Real") else None,
             "PantallaActual": row.get("Pantalla Actual"),
-            "Progreso": round(float(row.get("% Progreso", 0)), 1) if row.get("% Progreso") else 0.0,
-            "DiasUltimoUso": int(row.get("Días desde último uso")) if row.get("Días desde último uso") is not None else None,
+            "Progreso": round(safe_float(row.get("% Progreso", 0)), 1),
+            "DiasUltimoUso": safe_int_dias(row.get("Días desde último uso")),
             "Estado": row.get("Estado"),
             "Completado": bool(row.get("Completado", False)),
             "StatusClasificado": row.get("Status Clasificado", "Desconocido"),
