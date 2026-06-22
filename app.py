@@ -357,13 +357,21 @@ def load_state_from_db():
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = [row[0] for row in cursor.fetchall()]
+        print(f"[DB] Tablas encontradas en SQLite: {tables}")
         
         if "df_processed" in tables:
             state.df_processed = pd.read_sql("SELECT * FROM df_processed", conn)
+            print(f"[DB] df_processed cargado con {len(state.df_processed)} registros.")
+        else:
+            print("[DB] ADVERTENCIA: Tabla df_processed no encontrada en SQLite.")
+            
         if "df_original" in tables:
             state.df_original = pd.read_sql("SELECT * FROM df_original", conn)
+            print(f"[DB] df_original cargado con {len(state.df_original)} registros.")
+            
         if "df_contactados" in tables:
             state.df_contactados = pd.read_sql("SELECT * FROM df_contactados", conn)
+            print(f"[DB] df_contactados cargado con {len(state.df_contactados)} registros.")
             
         if "metadata" in tables:
             df_meta = pd.read_sql("SELECT * FROM metadata", conn)
@@ -376,6 +384,7 @@ def load_state_from_db():
                     state.nuevos_pendientes = json.loads(nuevos_raw)
                 else:
                     state.nuevos_pendientes = []
+                print(f"[DB] Metadata cargada: fecha_sincronizacion={state.fecha_sincronizacion}, archivo_plantilla_path={state.archivo_plantilla_path}, nuevos_pendientes={len(state.nuevos_pendientes)}")
         print("[DB] Estado recuperado de SQLite exitosamente.")
         return True
     except Exception as e:
