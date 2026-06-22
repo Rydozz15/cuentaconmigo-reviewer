@@ -615,6 +615,7 @@ async def startup_event():
     if (state.df_processed is None or len(state.df_processed) == 0) and (state.df_original is not None and len(state.df_original) > 0):
         print("[STARTUP-RECOVERY] ADVERTENCIA: df_processed está vacío pero df_original tiene datos. Iniciando auto-recuperación...")
         state.df_processed = state.df_original.copy()
+        state.fecha_sincronizacion = None  # Forzar sincronización inmediata al inicio
         save_state_to_db()
         print(f"[STARTUP-RECOVERY] Auto-recuperación finalizada. df_processed restaurado con {len(state.df_processed)} registros en SQLite y nube.")
         
