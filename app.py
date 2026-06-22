@@ -828,6 +828,21 @@ def get_processed_data():
         
     df = state.df_processed.copy()
     
+    # Asegurar que existan las columnas clave para evitar KeyErrors en fallbacks o auto-recuperaciones
+    if 'Status Clasificado' not in df.columns:
+        df['Status Clasificado'] = 'Desconocido'
+    if 'Status Ordenado' not in df.columns:
+        df['Status Ordenado'] = df['Status Clasificado'].map(status_map)
+        df['Status Ordenado'] = df['Status Ordenado'].fillna('Desconocido')
+    if 'Pantalla Actual' not in df.columns:
+        df['Pantalla Actual'] = None
+    if 'Completado' not in df.columns:
+        df['Completado'] = False
+    if 'Colegio' not in df.columns:
+        df['Colegio'] = 'Desconocido'
+    if 'ID' not in df.columns:
+        df['ID'] = ""
+    
     # Formatear nans a None para salida JSON limpia
     df = df.replace({np.nan: None})
     
