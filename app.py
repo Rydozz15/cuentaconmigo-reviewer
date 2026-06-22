@@ -78,6 +78,42 @@ from logic import (
     parsear_fecha_inscripcion
 )
 
+def asegurar_esquema_df(df):
+    if df is None:
+        return None
+    df_copy = df.copy()
+    
+    # Asegurar columnas críticas para evitar KeyErrors en fallbacks o auto-recuperaciones
+    if 'Status Clasificado' not in df_copy.columns:
+        df_copy['Status Clasificado'] = 'Desconocido'
+    if 'Status Ordenado' not in df_copy.columns:
+        df_copy['Status Ordenado'] = df_copy['Status Clasificado'].map(status_map)
+        df_copy['Status Ordenado'] = df_copy['Status Ordenado'].fillna('Desconocido')
+    if 'Pantalla Actual' not in df_copy.columns:
+        df_copy['Pantalla Actual'] = None
+    if '% Progreso' not in df_copy.columns:
+        df_copy['% Progreso'] = 0.0
+    if 'Días desde último uso' not in df_copy.columns:
+        df_copy['Días desde último uso'] = None
+    if 'Completado' not in df_copy.columns:
+        df_copy['Completado'] = False
+    if 'Colegio' not in df_copy.columns:
+        df_copy['Colegio'] = 'Desconocido'
+    if 'ID' not in df_copy.columns:
+        df_copy['ID'] = ""
+    if 'Comentarios' not in df_copy.columns:
+        df_copy['Comentarios'] = ""
+    if 'Fecha log en app' not in df_copy.columns:
+        df_copy['Fecha log en app'] = None
+    if 'Fecha Esperada Finalización' not in df_copy.columns:
+        df_copy['Fecha Esperada Finalización'] = None
+    if 'Fecha Finalización Real' not in df_copy.columns:
+        df_copy['Fecha Finalización Real'] = None
+    if 'Teléfono' not in df_copy.columns:
+        df_copy['Teléfono'] = None
+        
+    return df_copy
+
 app = FastAPI(title="Plataforma Cuenta Conmigo", version="1.0")
 
 # Habilitar CORS
@@ -355,6 +391,7 @@ def db_pull_state():
 def save_state_to_db():
     if state.df_processed is None:
         return
+    state.df_processed = asegurar_esquema_df(state.df_processed)
     db_path = os.path.join(DATA_DIR, "revisor.db")
     conn = sqlite3.connect(db_path, timeout=10.0)
     try:
