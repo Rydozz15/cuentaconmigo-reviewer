@@ -120,9 +120,25 @@ def get_postgres_conn():
     return psycopg2.connect(db_url, connect_timeout=5)
 
 def init_postgres_db():
-    conn = get_postgres_conn()
-    if not conn:
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
         return
+    
+    print("[CLOUD-DB] Inicializando base de datos Postgres (esperando cold start si aplica)...")
+    conn = None
+    for attempt in range(15):  # 15 intentos de 3 segundos = 45 segundos max de espera
+        try:
+            conn = get_postgres_conn()
+            if conn:
+                break
+        except Exception as e:
+            print(f"[CLOUD-DB] Conexión de inicialización fallida (intento {attempt + 1}/15): {e}")
+            time.sleep(3)
+            
+    if not conn:
+        print("[CLOUD-DB] No se pudo establecer conexión con Postgres para inicializar la tabla.")
+        return
+        
     try:
         with conn.cursor() as cur:
             cur.execute("""
@@ -221,17 +237,17 @@ def db_pull_state():
     key = get_secret_key()
     
     conn = None
-    for attempt in range(5):
+    for attempt in range(15):  # 15 intentos de 3 segundos = 45 segundos max de espera
         try:
             conn = get_postgres_conn()
             if conn:
                 break
         except Exception as e:
-            print(f"[CLOUD-DB] Conexión fallida (intento {attempt + 1}/5): {e}")
-            time.sleep(2)
+            print(f"[CLOUD-DB] Conexión fallida (intento {attempt + 1}/15): {e}")
+            time.sleep(3)
             
     if not conn:
-        print("[CLOUD-DB] No se pudo establecer conexión con Postgres tras 5 intentos. Arrancando en modo degradado.")
+        print("[CLOUD-DB] No se pudo establecer conexión con Postgres tras 15 intentos. Arrancando en modo degradado.")
         state.last_cloud_sync_status = "connection_failed"
         return False
         

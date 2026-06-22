@@ -111,5 +111,8 @@ Dado que los servicios de hosting gratuitos tradicionales (como Render o Heroku)
    uvicorn app:app --workers 1 --host 0.0.0.0 --port $PORT
    ```
 
+> [!TIP]
+> **Tolerancia a Cold Start:** Debido a que el tier gratuito de Neon suspende la base de datos tras periodos de inactividad, el backend de la plataforma está configurado para reintentar pacientemente la conexión hasta 15 veces (esperando 3 segundos entre intentos, sumando un total de 45 segundos) durante el inicio del servidor web. Esto permite dar tiempo a que Neon complete su proceso de arranque ("cold start") y se descarguen exitosamente los respaldos cifrados antes de servir la interfaz al usuario.
+
 ### 12. ¿Cómo evito consumir en exceso la cuota gratuita de Neon (Free Tier)?
 Para mantener el canal activo con PostgreSQL y evitar demoras de conexión, el portal web ejecuta pings de mantenimiento (`SELECT 1`) automáticos cada 15 segundos mientras mantenga abierta la interfaz web. **Se recomienda cerrar la pestaña de la aplicación en el navegador al terminar la jornada de trabajo**. Esto detendrá las peticiones web y permitirá que la base de datos de Neon entre en suspensión, preservando así las horas de cómputo mensuales gratuitas de su plan.
